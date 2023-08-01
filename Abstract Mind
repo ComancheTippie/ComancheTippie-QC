@@ -1,0 +1,57 @@
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.visualization import plot_histogram
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Defining the Quantum System
+n_mind = 5 # Qubits representing the "mind"
+n_reality = 5 # Qubits representing "external reality"
+n_meta_reality = 5 # Qubits representing "meta-reality"
+n_qubits = n_mind + n_reality + n_meta_reality
+
+quantum_experiment = QuantumCircuit(n_qubits, n_qubits)
+
+# Creating initial superposition across all layers
+for qubit in range(n_qubits):
+    quantum_experiment.h(qubit)
+
+# Mind-Reality Entanglement
+for qubit in range(n_mind):
+    quantum_experiment.cx(qubit, qubit + n_mind)
+
+# Reality-Meta-Reality Entanglement
+for qubit in range(n_reality):
+    quantum_experiment.cx(qubit + n_mind, qubit + n_mind + n_reality)
+
+# Simulating Perceptual Filtering within Reality and Meta-Reality
+for qubit in range(n_mind, n_qubits):
+    quantum_experiment.rx(np.pi/4, qubit)
+
+# Creating Mind Internal Complexity
+for qubit in range(n_mind - 1):
+    quantum_experiment.cx(qubit, qubit + 1)
+
+# Simulating Meta-Reality Complexity (representing deeper levels of consciousness)
+for qubit in range(n_mind + n_reality, n_qubits - 1):
+    quantum_experiment.cx(qubit, qubit + 1)
+    quantum_experiment.ry(np.pi/3, qubit)
+
+# Measurement
+quantum_experiment.measure(range(n_qubits), range(n_qubits))
+
+# Simulating
+backend = Aer.get_backend('qasm_simulator')
+result = execute(quantum_experiment, backend, shots=1000).result()
+counts = result.get_counts()
+
+# Calculating entropy
+entropy = -sum([count/1000 * np.log2(count/1000) for count in counts.values()])
+
+print(f"Entropy (Information Integration): {entropy}")
+
+
+
+# Plot the histogram
+plot = plot_histogram(counts)
+plot.savefig("histogram.png")  # Save the plot as an image file
+plt.show()  # Display the plot
