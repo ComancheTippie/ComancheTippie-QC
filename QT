@@ -1,0 +1,39 @@
+from qiskit import QuantumCircuit, transpile, assemble, Aer, execute
+from qiskit.visualization import plot_histogram, plot_bloch_multivector
+from qiskit.quantum_info import Statevector
+import matplotlib.pyplot as plt
+
+# Create a Quantum Circuit acting on a quantum register of three qubits
+circ = QuantumCircuit(3, 3)
+
+# Step 0: Prepare the initial state which we want to teleport, we'll set qubit 0 to state `|1>`
+circ.x(0)
+
+# Step 1: create an entangled pair between Q2 and Q1
+circ.h(1)
+circ.cx(1, 2)
+
+# Step 2: Apply a series of operations between the state we're teleporting Q0 and the entangled Q1
+circ.cx(0, 1)
+circ.h(0)
+
+# Step 3: Measure Q0 and Q1
+circ.measure([0, 1], [0, 1])
+
+# Step 4: Apply corrective gates
+circ.cx(1, 2)
+circ.cz(0, 2)
+
+# Measure Q2
+circ.measure(2, 2)
+
+simulator = Aer.get_backend('qasm_simulator')
+result = execute(circ, simulator, shots=1000).result()
+counts = result.get_counts(circ)
+
+# Save the plot as a PNG
+fig = plot_histogram(counts)
+fig.savefig('quantum_teleportation.png', dpi=300)
+
+# If you still want to try and display the plot in your current environment, you can use plt.show()
+plt.show()
