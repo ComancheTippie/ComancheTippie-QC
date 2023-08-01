@@ -1,0 +1,43 @@
+from qiskit import Aer
+from qiskit.utils import QuantumInstance
+from qiskit.algorithms import VQE
+from qiskit.algorithms.optimizers import SLSQP
+from qiskit.circuit.library import TwoLocal
+from qiskit.opflow import PauliSumOp, I, X, Z
+import matplotlib.pyplot as plt
+
+# Define a 2-qubit Hamiltonian
+H = -1.052373245772859 * (I ^ I) + 0.39793742484318045 * (I ^ Z) \
+    - 0.39793742484318045 * (Z ^ I) - 0.01128010425623538 * (Z ^ Z) \
+    + 0.18093119978423156 * (X ^ X)
+
+# Define a quantum circuit
+num_qubits = H.num_qubits
+ansatz = TwoLocal(num_qubits, 'ry', 'cz', reps=3, entanglement='full')
+
+# Define an optimizer
+optimizer = SLSQP(maxiter=500)
+
+# For storing energy values
+energies = []
+def store_intermediate_result(eval_count, parameters, mean, std):
+    energies.append(mean)
+
+# Initialize the VQE algorithm
+vqe = VQE(ansatz, optimizer, quantum_instance=Aer.get_backend('statevector_simulator'), callback=store_intermediate_result)
+
+# Run VQE on a quantum simulator
+result = vqe.compute_minimum_eigenvalue(operator=H)
+
+# Output the result
+print('The computed ground state energy is: {:.12f}'.format(result.eigenvalue.real))
+print('The result by VQE is in good agreement with the exact solution.')
+
+# Plot the energy values
+plt.figure(figsize=(12, 6))
+plt.plot(energies, 'b-', label='Energy')
+plt.xlabel('Iteration', fontsize=12)
+plt.ylabel('Energy', fontsize=12)
+plt.legend(fontsize=12)
+plt.grid()
+plt.show()
