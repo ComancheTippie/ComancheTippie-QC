@@ -1,0 +1,57 @@
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.visualization import plot_histogram
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Function to model neutron interactions
+def neutron_interactions(circuit, interaction_strength):
+    for i in range(circuit.num_qubits - 1):
+        circuit.cx(i, i+1)
+        circuit.rz(interaction_strength, i+1)
+        circuit.cx(i, i+1)
+    return circuit
+
+# Function to encode relativistic effects
+def relativistic_effects(circuit, velocity):
+    time_dilation_factor = np.sqrt(1 - velocity**2) # Simplified time dilation
+    for i in range(circuit.num_qubits):
+        circuit.rz(time_dilation_factor, i)
+    return circuit
+
+# Function to simulate gravitational effects
+def gravitational_effects(circuit, gravitational_field):
+    for i in range(circuit.num_qubits):
+        circuit.ry(gravitational_field, i)
+    return circuit
+
+# Main function for the neutron star simulation
+def neutron_star_simulation(interaction_strength, velocity, gravitational_field):
+    circuit = QuantumCircuit(5, 5)
+
+    # Model neutron interactions
+    circuit = neutron_interactions(circuit, interaction_strength)
+
+    # Encode relativistic effects
+    circuit = relativistic_effects(circuit, velocity)
+
+    # Simulate gravitational effects
+    circuit = gravitational_effects(circuit, gravitational_field)
+
+    circuit.measure(range(5), range(5))
+
+    simulator = Aer.get_backend('aer_simulator')
+    result = execute(circuit, simulator, shots=1024).result()
+    counts = result.get_counts()
+
+    return counts
+
+interaction_strength = 0.5
+velocity = 0.3
+gravitational_field = 0.7
+
+counts = neutron_star_simulation(interaction_strength, velocity, gravitational_field)
+
+
+# Plot the results
+plot_histogram(counts)
+plt.show()
