@@ -1,0 +1,52 @@
+from qiskit import QuantumCircuit, Aer, transpile, assemble, execute
+from qiskit.visualization import plot_histogram
+import numpy as np
+import matplotlib.pyplot as plt
+
+def black_hole_interaction(circuit, qubits):
+    circuit.cx(qubits[0], qubits[1])
+    circuit.h(qubits[1])
+    return circuit
+
+def hawking_radiation(circuit, qubit):
+    theta = np.random.uniform(0, 2*np.pi)
+    circuit.rx(theta, qubit)
+    return circuit
+
+# Construct the quantum circuit
+def two_black_holes_circuit():
+    circuit = QuantumCircuit(6, 2)
+    circuit.h(0)  # Initialize information
+    
+    # First black hole interaction
+    circuit = black_hole_interaction(circuit, [0, 1])
+    circuit = hawking_radiation(circuit, 1)
+    
+    # Second black hole interaction
+    circuit = black_hole_interaction(circuit, [1, 2])
+    circuit = hawking_radiation(circuit, 2)
+    
+    # Information retrieval (simplified)
+    circuit.cx(1, 2)
+    circuit.h(1)
+    circuit.cx(0, 1)
+    circuit.h(0)
+    
+    circuit.measure([0, 1], [0, 1])
+    return circuit
+
+# Construct and run the circuit
+circuit = two_black_holes_circuit()
+simulator = Aer.get_backend('aer_simulator')
+compiled_circuit = transpile(circuit, simulator)
+qobj = assemble(compiled_circuit)
+result = simulator.run(qobj).result()
+
+# Print the measurement outcomes
+counts = result.get_counts()
+print(counts)
+
+# Plot the histogram
+plot = plot_histogram(counts)
+plot.savefig("two_black_holes_histogram.png")  # Save the plot as an image file
+plt.show()  # Display the plot
