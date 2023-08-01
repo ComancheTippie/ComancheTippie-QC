@@ -1,0 +1,36 @@
+from qiskit import QuantumCircuit, transpile, assemble, Aer, execute
+from qiskit.visualization import plot_histogram, plot_bloch_vector
+from qiskit.quantum_info import Statevector, DensityMatrix
+import matplotlib.pyplot as plt
+
+# Define the Quantum Circuit
+circuit = QuantumCircuit(1,1)
+
+# Add a Hadamard gate to create superposition
+circuit.h(0)
+
+# Add a measurement gate
+circuit.measure(0, 0)
+
+# Simulate the circuit
+simulator = Aer.get_backend('qasm_simulator')
+job = execute(circuit, simulator, shots=1000)
+results = job.result()
+
+# Get the counts (how many times each possible outcome was obtained)
+counts = results.get_counts(circuit)
+
+# Plot the results
+plot_histogram(counts)
+plt.show()
+
+# For Bloch sphere, we need to remove the measurement and get the statevector
+circuit.remove_final_measurements(inplace=True)
+statevector_simulator = Aer.get_backend('statevector_simulator')
+job = execute(circuit, statevector_simulator)
+statevector_result = job.result().get_statevector()
+
+# Convert statevector to Bloch vector and plot
+dm = DensityMatrix(statevector_result)
+plot_bloch_vector(dm.to_statevector().sample_counts(1000))
+plt.show()
