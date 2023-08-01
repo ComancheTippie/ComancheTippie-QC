@@ -1,0 +1,41 @@
+from qiskit import QuantumCircuit, Aer, transpile, assemble, execute
+import numpy as np
+from scipy.stats import entropy
+
+def initialize_information(circuit):
+    circuit.h([0, 1])  # Example initialization
+    return circuit
+
+def simulate_event_horizon(circuit):
+    circuit.cx([0, 1], [2, 3])  # Entangling with black hole qubits
+    return circuit
+
+def information_scrambling(circuit):
+    for qubit in [2, 3]:
+        theta = np.random.uniform(0, 2*np.pi)
+        phi = np.random.uniform(0, np.pi)
+        lam = np.random.uniform(0, 2*np.pi)
+        circuit.u(theta, phi, lam, qubit)
+    return circuit
+
+def black_hole_entropy_experiment():
+    circuit = QuantumCircuit(4, 4)
+    circuit = initialize_information(circuit)
+    circuit = simulate_event_horizon(circuit)
+    circuit = information_scrambling(circuit)
+    circuit.measure([0, 1, 2, 3], [0, 1, 2, 3])
+    return circuit
+
+# Construct and run the circuit
+circuit = black_hole_entropy_experiment()
+simulator = Aer.get_backend('aer_simulator')
+compiled_circuit = transpile(circuit, simulator)
+qobj = assemble(compiled_circuit)
+result = simulator.run(qobj).result()
+
+# Calculate entropy
+counts = result.get_counts()
+probabilities = [count / sum(counts.values()) for count in counts.values()]
+shannon_entropy = entropy(probabilities, base=2)
+
+print("Shannon Entropy of the System:", shannon_entropy)
