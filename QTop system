@@ -1,0 +1,51 @@
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.visualization import plot_histogram
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Function to apply the Hamiltonian representing the Kitaev chain
+def kitaev_chain(circuit, mu, t, delta):
+    num_qubits = circuit.num_qubits
+
+    # Term representing chemical potential
+    for i in range(num_qubits):
+        circuit.rz(-2 * mu, i)
+
+    # Term representing hopping between sites
+    for i in range(num_qubits - 1):
+        circuit.rxx(2 * t, i, i + 1)
+
+    # Term representing pairing between sites
+    for i in range(num_qubits - 1):
+        circuit.ryy(2 * delta, i, i + 1)
+
+    return circuit
+
+# Main function for quantum topological phases simulation
+def topological_simulation(mu, t, delta):
+    circuit = QuantumCircuit(4, 4)  # Using 4 qubits for simplicity
+
+    # Applying Kitaev chain model Hamiltonian
+    circuit = kitaev_chain(circuit, mu, t, delta)
+
+    # Measuring the qubits
+    circuit.measure(range(4), range(4))
+
+    # Simulating the circuit
+    simulator = Aer.get_backend('aer_simulator')
+    result = execute(circuit, simulator, shots=1024).result()
+    counts = result.get_counts()
+
+    return counts
+
+# Parameters for the Kitaev chain model
+mu = 0.5    # Chemical potential
+t = 0.5     # Hopping parameter
+delta = 0.3 # Pairing parameter
+
+counts = topological_simulation(mu, t, delta)
+plot_histogram(counts)
+
+# Plot the results
+plot_histogram(counts)
+plt.show()
