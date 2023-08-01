@@ -1,0 +1,50 @@
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.visualization import plot_histogram
+import matplotlib.pyplot as plt
+
+# Function for the oracle (Uf)
+def oracle(circ):
+    circ.cz(0,1)
+
+# Function for the Grover diffusion operator (Ug)
+def grover_diffusion(circ):
+    circ.h([0,1])
+    circ.z([0,1])
+    circ.cz(0,1)
+    circ.h([0,1])
+
+# Define the Quantum Circuit
+circ = QuantumCircuit(2, 2)
+
+# Initialize all qubits to |+>
+circ.h([0,1])
+
+# Apply the oracle
+oracle(circ)
+
+# Apply the Grover diffusion operator
+grover_diffusion(circ)
+
+# Measure the qubits
+circ.measure([0,1], [0,1])
+
+# Use Aer's qasm_simulator
+simulator = Aer.get_backend('qasm_simulator')
+
+# Execute the circuit on the qasm simulator
+job = execute(circ, simulator, shots=1000)
+
+# Grab the results from the job
+result = job.result()
+
+# Get the counts (how many times each possible outcome was obtained)
+counts = result.get_counts(circ)
+
+# Create the histogram
+fig = plot_histogram(counts)
+
+# Save it as an image file
+fig.savefig('grover_histogram.png')
+
+# Show the plot
+plt.show()
