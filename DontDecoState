@@ -1,0 +1,35 @@
+from qiskit import QuantumCircuit, execute, Aer
+from qiskit.visualization import plot_histogram
+import matplotlib.pyplot as plt
+
+# Create a Quantum Circuit with 2 qubits and 2 classical bits
+circuit = QuantumCircuit(2, 2)
+
+# Create a superposition of states on the first qubit
+circuit.h(0)
+
+# Use a CNOT gate to entangle the two qubits
+circuit.cx(0, 1)
+
+# Perform a measurement on the second (auxiliary) qubit
+circuit.measure(1, 1)
+
+# Use Aer's qasm_simulator
+simulator = Aer.get_backend('qasm_simulator')
+
+# Execute the circuit on the qasm simulator
+job = execute(circuit, simulator, shots=1000)
+
+# Grab the results from the job
+result = job.result()
+
+# Get the counts (how many times each possible outcome was obtained)
+counts = result.get_counts(circuit)
+
+# Display the counts
+print("The outcomes are:", counts)
+
+# Plot the histogram and display it using matplotlib
+hist = plot_histogram(counts)
+hist.savefig("histogram.png") # saves the histogram as a .png file
+plt.show()  # this line will display the plot in some environments
