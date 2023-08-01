@@ -1,0 +1,41 @@
+from qiskit import QuantumCircuit, execute, Aer
+from qiskit.visualization import plot_histogram
+import matplotlib.pyplot as plt
+
+# Bit flip error correction
+
+# Initialize a quantum circuit with 3 qubits and 3 classical bits
+qc = QuantumCircuit(3, 3)
+
+# Create a |1> state
+qc.x(0)
+
+# Create the bit flip code
+qc.cx(0, 1)
+qc.cx(0, 2)
+
+# Introduce a bit flip error (for testing purposes)
+qc.x(1)
+
+# Correction part
+qc.cx(0, 1)
+qc.cx(0, 2)
+
+# Majority vote using a Toffoli gate
+qc.ccx(2, 1, 0)
+
+# Measure the qubits
+qc.measure([0, 1, 2], [0, 1, 2])
+
+# Simulate the circuit
+simulator = Aer.get_backend('qasm_simulator')
+job = execute(qc, simulator, shots=1000)
+result = job.result()
+counts = result.get_counts(qc)
+
+# Print the counts
+print(counts)
+
+# Show the results in a histogram
+plot_histogram(counts)
+plt.show()
