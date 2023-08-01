@@ -1,0 +1,45 @@
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.visualization import plot_histogram
+from random import randint
+import matplotlib.pyplot as plt
+
+# Create a three-qubit quantum circuit
+qc = QuantumCircuit(3, 3)
+
+# Alice, Bob, and Charlie's random bits
+A = randint(0, 1)
+B = randint(0, 1)
+C = randint(0, 1)
+
+# If Alice's bit is 1, apply a Hadamard gate
+if A == 1:
+    qc.h(0)
+
+# If Bob's bit is 1, apply a controlled-not gate between Alice and Bob's qubits
+if B == 1:
+    qc.cx(0, 1)
+
+# If Charlie's bit is 1, apply a controlled-not gate between Alice and Charlie's qubits
+if C == 1:
+    qc.cx(0, 2)
+
+# Apply a Hadamard gate to Alice's qubit
+qc.h(0)
+
+# Measure all qubits
+qc.measure([0, 1, 2], [0, 1, 2])
+
+# Run the circuit on the qasm simulator
+simulator = Aer.get_backend('qasm_simulator')
+job = execute(qc, simulator, shots=1000)
+
+# Grab the results from the job
+result = job.result()
+
+# Return the counts
+counts = result.get_counts(qc)
+print("\nTotal counts are:",counts)
+
+# Show the histogram
+plot_histogram(counts)
+plt.show()
