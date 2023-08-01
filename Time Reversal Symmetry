@@ -1,0 +1,56 @@
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.visualization import plot_histogram
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Function to apply TRS breaking Hamiltonian
+def apply_hamiltonian(circuit, theta):
+    circuit.rx(theta, 0)
+    circuit.rz(theta, 0)
+    return circuit
+
+# Function to apply the time evolution
+def time_evolution(circuit, time_steps, theta):
+    for _ in range(time_steps):
+        circuit = apply_hamiltonian(circuit, theta)
+    return circuit
+
+# Function to simulate time reversal
+def time_reversal(circuit, time_steps, theta):
+    for _ in range(time_steps):
+        circuit = apply_hamiltonian(circuit, -theta) # Negative theta for time reversal
+    return circuit
+
+# Main function to create the circuit, apply time evolution, and time reversal
+def trs_experiment(time_steps, theta):
+    circuit = QuantumCircuit(1, 1)
+
+    # Initialize in a superposition
+    circuit.h(0)
+
+    # Apply tailored Hamiltonian for time evolution
+    circuit = time_evolution(circuit, time_steps, theta)
+
+    # Simulate time reversal
+    circuit = time_reversal(circuit, time_steps, theta)
+
+    # Measurement
+    circuit.measure(0, 0)
+
+    # Execute the circuit
+    simulator = Aer.get_backend('aer_simulator')
+    result = execute(circuit, simulator).result()
+    counts = result.get_counts()
+
+    return counts
+
+# Parameters
+time_steps = 10
+theta = np.pi / 4
+
+# Run the experiment
+counts = trs_experiment(time_steps, theta)
+
+# Plot the results
+plot_histogram(counts)
+plt.show()
