@@ -1,0 +1,35 @@
+from qiskit import QuantumCircuit, Aer, execute
+
+def hash_function(message):
+    return bin(hash(message) & ((1 << 4) - 1))[2:].zfill(4)
+
+def encode_message(hashed_message, qc):
+    for i, bit in enumerate(hashed_message):
+        if bit == '1':
+            qc.x(i)
+
+def signature_key(qc):
+    # Apply simple quantum gates to create a signature
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.cx(1, 2)
+    qc.cx(2, 3)
+
+def create_signature(message):
+    hashed_message = hash_function(message)
+    qc = QuantumCircuit(4, 4)
+    encode_message(hashed_message, qc)
+    signature_key(qc)
+    qc.measure(range(4), range(4))
+    aer_sim = Aer.get_backend('aer_simulator')
+    result = execute(qc, aer_sim, shots=1).result()
+    return result.get_counts().most_frequent()
+
+def verify_signature(signature, original_message):
+    expected_signature = create_signature(original_message)
+    return signature == expected_signature
+
+message = "Hello, Quantum World!"
+signature = create_signature(message)
+is_valid = verify_signature(signature, message)
+print("Signature is valid:", is_valid)
