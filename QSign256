@@ -1,0 +1,28 @@
+from hashlib import sha256
+from qiskit import QuantumCircuit, Aer, assemble
+
+def hash_function(message):
+    return bin(int(sha256(message.encode()).hexdigest(), 16))[-8:]
+
+def create_signature(message):
+    hashed_message = hash_function(message)
+    qc = QuantumCircuit(8)
+    for i, bit in enumerate(hashed_message):
+        if bit == '1':
+            qc.x(i)
+    qc.h(range(8)) # Apply Hadamard gates
+    return qc
+
+def verify_signature(signature_circuit, original_message):
+    hashed_message = hash_function(original_message)
+    verify_circuit = QuantumCircuit(8)
+    for i, bit in enumerate(hashed_message):
+        if bit == '1':
+            verify_circuit.x(i)
+    verify_circuit.h(range(8))
+    return signature_circuit == verify_circuit
+
+message = "Hello, Quantum World!"
+signature_circuit = create_signature(message)
+is_valid = verify_signature(signature_circuit, message)
+print("Signature is valid:", is_valid)
