@@ -1,0 +1,44 @@
+import hashlib
+from qiskit import QuantumCircuit, Aer, transpile, assemble
+from qiskit.visualization import plot_histogram
+import matplotlib.pyplot as plt
+
+def truncate_sha256(message, bits=8):
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(message.encode())
+    full_hash = sha256_hash.digest()
+    binary_hash = ''.join([bin(byte)[2:].zfill(8) for byte in full_hash])
+    truncated_hash = binary_hash[-bits:]
+    return truncated_hash
+
+def bit_flip_code_encode(qc, qubit):
+    qc.cx(qubit, qubit + 1)
+    qc.cx(qubit, qubit + 2)
+
+def encode_segment(segment):
+    n = 3  # Number of physical qubits for each logical qubit
+    qc = QuantumCircuit(n * len(segment), len(segment))
+    for i, bit in enumerate(segment):
+        if bit == '1':
+            qc.x(i * n)
+        bit_flip_code_encode(qc, i * n)
+    for i in range(len(segment)):
+        qc.measure(i * n, i)
+    return qc
+
+message = "Your original message here"
+truncated_hash = truncate_sha256(message)
+
+qc = encode_segment(truncated_hash)
+aer_sim = Aer.get_backend('aer_simulator')
+t_qc = transpile(qc, aer_sim)
+result = aer_sim.run(t_qc).result()  # Updated line to run transpiled circuits directly
+
+counts = result.get_counts(qc)
+print(counts)
+
+
+# Plotting the histogram
+counts = result.get_counts()
+plot_histogram(counts)
+plt.show()
