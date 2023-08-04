@@ -1,0 +1,43 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Constants
+hbar = 1
+mass = 1
+V0 = 5
+k = 1
+omega = 0.1
+N = 1000  # Number of spatial points
+L = 10    # Length of the space
+dx = L / N
+dt = 0.01 # Time step
+
+# Discretize space
+x = np.linspace(0, L, N)
+psi = np.exp(-(x - L / 2)**2) # Initial wave function, Gaussian centered in the middle
+psi /= np.linalg.norm(psi)   # Normalize
+
+# Kinetic energy operator
+T = np.diag(-2 * np.ones(N)) + np.diag(np.ones(N - 1), k=1) + np.diag(np.ones(N - 1), k=-1)
+T *= -hbar**2 / (2 * mass * dx**2)
+
+# Time evolution loop
+for t in np.arange(0, 2 * np.pi / omega, dt):
+    # Time-dependent potential
+    V = V0 * np.sin(k * x) * np.cos(omega * t)
+    
+    # Hamiltonian
+    H = T + np.diag(V)
+    
+    # Crank-Nicolson method
+    A = np.eye(N) - 1j * dt * H / (2 * hbar)
+    B = np.eye(N) + 1j * dt * H / (2 * hbar)
+    psi = np.linalg.solve(A, B @ psi)
+
+    # Visualization (e.g., every 100 steps)
+    if int(t/dt) % 100 == 0:
+        plt.plot(x, np.abs(psi)**2)
+        plt.title(f"t = {t}")
+        plt.xlabel("Position")
+        plt.ylabel("Probability Density")
+        plt.show()
