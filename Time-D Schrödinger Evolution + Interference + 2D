@@ -1,0 +1,56 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Constants
+hbar = 1
+mass = 1
+V0 = 5
+k = 1
+omega = 0.1
+N = 100  # Number of spatial points in each dimension
+L = 10   # Length of the space
+dx = L / N
+dt = 0.01 # Time step
+
+# Discretize space
+x = y = np.linspace(0, L, N)
+x_grid, y_grid = np.meshgrid(x, y)
+
+# Initial wave function, Gaussian centered in the middle
+psi = np.exp(-((x_grid - L / 2)**2 + (y_grid - L / 2)**2))
+psi /= np.linalg.norm(psi)
+
+# Kinetic energy operator
+T = np.diag(-2 * np.ones(N)) + np.diag(np.ones(N - 1), k=1) + np.diag(np.ones(N - 1), k=-1)
+T *= -hbar**2 / (2 * mass * dx**2)
+T_2D = np.kron(T, np.eye(N)) + np.kron(np.eye(N), T)
+
+# Counter for plotting intervals
+plot_interval = 50
+counter = 0
+
+# Time evolution loop
+for t in np.arange(0, 2 * np.pi / omega, dt):
+    # Time-dependent potential
+    V = V0 * np.sin(k * x_grid) * np.cos(omega * t) * np.sin(k * y_grid)
+    V_flat = V.flatten()
+
+    # Hamiltonian
+    H = T_2D + np.diag(V_flat)
+
+    # Crank-Nicolson method
+    A = np.eye(N**2) - 1j * dt * H / (2 * hbar)
+    B = np.eye(N**2) + 1j * dt * H / (2 * hbar)
+    psi = np.linalg.solve(A, B @ psi.flatten())
+    psi = psi.reshape(N, N)
+
+    # Visualization at regular intervals
+    if counter % plot_interval == 0:
+        plt.imshow(np.abs(psi)**2, extent=[0, L, 0, L])
+        plt.title(f"t = {t}")
+        plt.xlabel("X Position")
+        plt.ylabel("Y Position")
+        plt.colorbar(label="Probability Density")
+        plt.show()
+
+    counter += 1
