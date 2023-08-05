@@ -1,0 +1,84 @@
+import numpy as np
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
+from scipy import ndimage
+from skimage import measure
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+# Constants
+hbar = 1
+mass = 1
+V0 = 5
+k = 1
+omega = 0.1
+N = 50  # Number of spatial points in each dimension, reduced for computation
+L = 10  # Length of the space
+dx = L / N
+dt = 0.01  # Time step
+
+# Discretize space
+x = y = z = np.linspace(0, L, N)
+x_grid, y_grid, z_grid = np.meshgrid(x, y, z, indexing='ij')
+
+# Initial wave function, Gaussian centered in the middle
+psi = np.exp(-((x_grid - L / 2)**2 + (y_grid - L / 2)**2 + (z_grid - L / 2)**2))
+psi /= np.linalg.norm(psi)
+
+# Kinetic energy operator
+T = np.diag(-2 * np.ones(N)) + np.diag(np.ones(N - 1), k=1) + np.diag(np.ones(N - 1), k=-1)
+T *= -hbar**2 / (2 * mass * dx**2)
+
+# Sparse kinetic energy operator in 3D
+T_3D = (sparse.kron(sparse.kron(T, sparse.eye(N)), sparse.eye(N)) +
+        sparse.kron(sparse.kron(sparse.eye(N), T), sparse.eye(N)) +
+        sparse.kron(sparse.kron(sparse.eye(N), sparse.eye(N)), T))
+
+# Time evolution loop
+for t in np.arange(0, 2 * np.pi / omega, dt):
+    # Time-dependent potential
+    V = V0 * np.sin(k * x_grid) * np.cos(omega * t) * np.sin(k * y_grid) * np.sin(k * z_grid)
+    V_flat = V.flatten()
+
+    # Hamiltonian
+    H = T_3D + sparse.diags(V_flat)
+
+    # Crank-Nicolson method
+    A = sparse.eye(N**3) - 1j * dt * H / (2 * hbar)
+    B = sparse.eye(N**3) + 1j * dt * H / (2 * hbar)
+    psi = spsolve(A, B @ psi.flatten())
+    psi = psi.reshape(N, N, N)
+
+    # Visualization at a specific time
+    if t == 0:
+        prob_density = np.abs(psi)**2
+
+                # Iterate over different level values
+        for level_multiplier in np.linspace(0.001, 0.05, 20):  
+            level = level_multiplier * np.max(prob_density)
+
+            # 3D visualization
+            verts, faces, _, values = measure.marching_cubes(prob_density, level=level)
+            
+            # Create a colormap to color the isosurface
+            colormap = plt.get_cmap('viridis')
+            
+            # Get unique set of face values
+            unique_values = np.unique(values)
+            unique_colors = colormap(unique_values / np.max(values))
+            
+            # Map unique colors back to face values
+            face_colors = unique_colors[np.searchsorted(unique_values, values)]
+            
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            mesh = Poly3DCollection(verts[faces], facecolors=face_colors)
+            ax.add_collection3d(mesh)
+            ax.set_xlim([0, L])
+            ax.set_ylim([0, L])
+            ax.set_zlim([0, L])
+            ax.set_xlabel('X Position')
+            ax.set_ylabel('Y Position')
+            ax.set_zlabel('Z Position')
+            plt.title(f"t = {t}, Level Multiplier = {level_multiplier:.4f}")
+            plt.show()
