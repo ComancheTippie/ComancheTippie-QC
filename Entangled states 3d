@@ -1,0 +1,55 @@
+import numpy as np
+import qiskit
+from qiskit import Aer, QuantumCircuit
+from qiskit.visualization import plot_state_city
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# Initialize the Quantum Circuit
+n_qubits = 2
+qc = QuantumCircuit(n_qubits)
+
+# Example: Create an entangled state
+qc.h(0)
+qc.cx(0, 1)
+
+# Obtain the Statevector
+backend = Aer.get_backend('statevector_simulator')
+result = qiskit.execute(qc, backend).result()
+optimal_statevector = np.asarray(result.get_statevector())
+
+# Define a function to get the "degree" of entanglement (for our visualization)
+def entanglement_degree(statevector):
+    matrix = np.outer(statevector, statevector.conj())
+    off_diagonal_sum = np.sum(np.abs(matrix) - np.diag(np.diag(matrix)))
+    return off_diagonal_sum
+
+degree = entanglement_degree(optimal_statevector)
+
+# Conceptual Entanglement Visualization
+res = 10
+X, Y, Z = np.meshgrid(np.linspace(0, 1, res),
+                      np.linspace(0, 1, res),
+                      np.linspace(0, 1, res))
+
+entanglement_data = np.ones(X.shape) * degree
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+sc = ax.scatter(X.flatten(), Y.flatten(), Z.flatten(), c=np.abs(entanglement_data.flatten()), cmap='viridis', s=100)
+plt.colorbar(sc)
+plt.title('Entanglement Visualization')
+plt.show()
+
+# Time Evolution (as an example, using a phase shift)
+evolution_op = qiskit.quantum_info.random_unitary(2**n_qubits)
+evolving_statevector = np.asarray(qiskit.quantum_info.Statevector.from_instruction(evolution_op).evolve(optimal_statevector))
+degree_after_evolution = entanglement_degree(evolving_statevector)
+
+entanglement_data_evolved = np.ones(X.shape) * degree_after_evolution
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+sc = ax.scatter(X.flatten(), Y.flatten(), Z.flatten(), c=np.abs(entanglement_data_evolved.flatten()), cmap='viridis', s=100)
+plt.colorbar(sc)
+plt.title('Evolved Entanglement Visualization')
+plt.show()
