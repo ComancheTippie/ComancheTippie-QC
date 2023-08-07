@@ -1,0 +1,74 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy.fft import fftn, ifftn
+
+# Constants and Parameters
+L = 10.0  # Box size
+N = 100  # Grid points
+dx = L / N
+dt = 0.01
+hbar = 1  # Planck's constant set to 1 for simplicity
+mass = 1  # Particle mass
+barrier_radius = 1.0
+barrier_potential = 50.0
+wave_packet_width = 0.5
+initial_position = [2.0, 2.0, 2.0]
+
+# Grid setup
+x = np.linspace(0, L, N)
+y = np.linspace(0, L, N)
+z = np.linspace(0, L, N)
+X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
+
+# Momentum space coordinates
+kx = 2 * np.pi * np.fft.fftfreq(N, d=dx)
+ky = 2 * np.pi * np.fft.fftfreq(N, d=dx)
+kz = 2 * np.pi * np.fft.fftfreq(N, d=dx)
+KX, KY, KZ = np.meshgrid(kx, ky, kz, indexing='ij')
+
+# Spherical barrier
+R = np.sqrt((X - L/2)**2 + (Y - L/2)**2 + (Z - L/2)**2)
+V = np.where(R <= barrier_radius, barrier_potential, 0)
+
+# Gaussian wave packet
+def wave_packet(x, y, z):
+    return np.exp(-((x - initial_position[0])**2 + (y - initial_position[1])**2 + (z - initial_position[2])**2) / (2 * wave_packet_width**2))
+
+# Initial state
+psi = wave_packet(X, Y, Z).astype(np.complex128)
+psi /= np.sqrt(np.sum(np.abs(psi)**2))  # Normalize
+
+
+# Time-evolve function using split-operator method
+def evolve(psi, V, dt):
+    # Half-evolution with potential
+    psi *= np.exp(-1j * V * dt / (2*hbar))
+    
+    # Transform to momentum space
+    psi_k = fftn(psi)
+    
+    # Kinetic evolution in momentum space
+    T_kinetic = np.exp(-1j * hbar * (KX**2 + KY**2 + KZ**2) * dt / (2*mass))
+    psi_k *= T_kinetic
+    
+    # Transform back to position space
+    psi = ifftn(psi_k)
+    
+    # Half-evolution with potential again
+    psi *= np.exp(-1j * V * dt / (2*hbar))
+    
+    return psi
+
+# Visualization
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+# Time evolution and animation
+for _ in range(200):
+    psi = evolve(psi, V, dt)
+    ax.cla()
+    ax.scatter(X, Y, Z, c=np.abs(psi)**2, cmap='viridis', marker='o')
+    plt.draw()
+    plt.pause(0.05)
+
+plt.show()
