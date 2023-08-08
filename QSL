@@ -1,0 +1,93 @@
+from qiskit.quantum_info import Statevector, Operator, partial_trace
+import numpy as np
+from qiskit.quantum_info import entropy
+from scipy.linalg import expm
+import matplotlib.pyplot as plt
+
+# Define our initial and target states
+initial_state = Statevector.from_label('000')
+target_state = Statevector.from_label('111')
+
+# Define our Hamiltonian
+J = 10  # Increased coupling constant
+X = Operator.from_label('X')
+Y = Operator.from_label('Y')
+Z = Operator.from_label('Z')
+I = Operator.from_label('I')
+H = J * (np.kron(np.kron(X, X), I) + np.kron(np.kron(Y, Y), I) + np.kron(np.kron(Z, Z), I))
+
+# Time points at which we'll calculate the evolution
+time_points = np.linspace(0, 50, 100)
+
+# Lists to store the results
+fidelities = []
+entanglements = []
+ML_speed_limits = []
+MT_speed_limits = []
+
+epsilon = 1e-10  # Small constant to prevent division by zero and square root of negative number
+
+# Evolve the system and calculate the quantities of interest
+for t in time_points:
+    # Create the evolution operator
+    U = expm(-1j * H * t)
+    
+    # Evolve the state
+    evolved_state = Statevector(np.dot(U, initial_state.data))
+    
+    # Calculate the fidelity with the target state
+    fidelity = evolved_state.inner(target_state)  # inner product gives the amplitude of overlap
+    fidelities.append(abs(fidelity)**2)  # probability of overlap is magnitude squared of the amplitude
+    
+    # Calculate the entanglement between the first and second qubits
+    reduced_state = partial_trace(evolved_state, [2])  # Tracing out the third qubit
+    entanglement = entropy(reduced_state, base=2)  # von Neumann entropy of the reduced state
+    entanglements.append(entanglement)
+    
+    # Calculate the Margolus-Levitin speed limit
+    avg_energy = np.real(evolved_state.expectation_value(Operator(H))) + epsilon
+    ML_speed_limit = np.pi / (2 * avg_energy)
+    ML_speed_limits.append(ML_speed_limit)
+    
+    # Calculate the Mandelstam-Tamm speed limit
+    energy_uncertainty = np.sqrt(np.maximum(np.real(evolved_state.expectation_value(Operator(H*H))) - avg_energy**2, epsilon))
+    MT_speed_limit = np.pi / (2 * energy_uncertainty)
+    MT_speed_limits.append(MT_speed_limit)
+
+# Plotting the results
+fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+
+# Plot fidelity
+axs[0, 0].plot(time_points, fidelities, label='Fidelity', color='blue', linestyle='-')
+axs[0, 0].set_xlabel('Time')
+axs[0, 0].set_ylabel('Fidelity')
+axs[0, 0].legend()
+axs[0, 0].grid(True)
+axs[0, 0].set_title('Fidelity over Time')
+
+# Plot entanglement
+axs[0, 1].plot(time_points, entanglements, label='Entanglement', color='green', linestyle='--')
+axs[0, 1].set_xlabel('Time')
+axs[0, 1].set_ylabel('Entanglement')
+axs[0, 1].legend()
+axs[0, 1].grid(True)
+axs[0, 1].set_title('Entanglement over Time')
+
+# Plot Margolus-Levitin speed limit
+axs[1, 0].plot(time_points, ML_speed_limits, label='Margolus-Levitin speed limit', color='red', linestyle='-.')
+axs[1, 0].set_xlabel('Time')
+axs[1, 0].set_ylabel('Speed Limit')
+axs[1, 0].legend()
+axs[1, 0].grid(True)
+axs[1, 0].set_title('Margolus-Levitin Speed Limit over Time')
+
+# Plot Mandelstam-Tamm speed limit
+axs[1, 1].plot(time_points, MT_speed_limits, label='Mandelstam-Tamm speed limit', color='purple', linestyle=':')
+axs[1, 1].set_xlabel('Time')
+axs[1, 1].set_ylabel('Speed Limit')
+axs[1, 1].legend()
+axs[1, 1].grid(True)
+axs[1, 1].set_title('Mandelstam-Tamm Speed Limit over Time')
+
+plt.tight_layout()
+plt.show()
