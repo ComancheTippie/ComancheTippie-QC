@@ -1,0 +1,88 @@
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from qiskit import QuantumCircuit, Aer, execute
+import numpy as np
+import random
+from math import pi
+from scipy.stats import chisquare
+
+def create_entangled_pair(qc, a, b):
+    qc.h(a)
+    qc.cx(a, b)
+
+def measure_in_basis(qc, a, b, basis):
+    if basis == 'Z':
+        pass
+    elif basis == 'X':
+        qc.h([a, b])
+    qc.measure([a, b], [a, b])
+
+def get_random_basis_switcher():
+    return random.choice(['Z', 'X'])
+
+def get_random_basis_pi(index):
+    pi_digits = str(pi)[2:]
+    digit = int(pi_digits[index % len(pi_digits)])
+    return 'Z' if digit % 2 == 0 else 'X'
+
+def coincidence_detection(basis):
+    return basis if random.random() < 0.9 else None
+
+num_experiments = 1000
+bases = ['Z', 'X']
+
+results = {basis_a + basis_b: {} for basis_a in bases for basis_b in bases}
+chsh_values = {basis_a + basis_b: 0 for basis_a in bases for basis_b in bases}
+
+# Experiment loop
+for i in range(num_experiments):
+    for basis_a in bases:
+        for basis_b in bases:
+            qc = QuantumCircuit(2, 2)
+            create_entangled_pair(qc, 0, 1)
+            basis_a_switcher = coincidence_detection(get_random_basis_switcher())
+            basis_b_switcher = coincidence_detection(get_random_basis_switcher())
+
+            # Skip this round if either basis is None
+            if basis_a_switcher is None or basis_b_switcher is None:
+                continue
+
+            measure_in_basis(qc, 0, 1, basis_a_switcher + basis_b_switcher)
+            job = execute(qc, Aer.get_backend('qasm_simulator'), shots=1)
+            result = job.result()
+            counts = result.get_counts(qc)
+            for outcome in ['00', '01', '10', '11']:
+                if outcome not in results[basis_a + basis_b]:
+                    results[basis_a + basis_b][outcome] = counts.get(outcome, 0)
+                else:
+                    results[basis_a + basis_b][outcome] += counts.get(outcome, 0)
+            if '00' in counts:
+                chsh_values[basis_a + basis_b] += counts['00'] / num_experiments
+            if '11' in counts:
+                chsh_values[basis_a + basis_b] -= counts['11'] / num_experiments
+
+# Prepare the data for the 3D scatter plot
+x_data = list(range(4))
+y_data = [chsh_values[basis] for basis in chsh_values.keys()]
+z_data = [0] * 4
+labels = list(chsh_values.keys())
+
+# Create the 3D scatter plot
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+scatter = ax.scatter(x_data, y_data, z_data, c='b', alpha=0.6, edgecolors='w', s=80)
+ax.set_xticks(x_data)
+ax.set_xticklabels(labels)
+ax.set_xlabel('Basis Combinations')
+ax.set_ylabel('CHSH Quantity')
+ax.set_zlabel('Z (Placeholder)')
+plt.title('3D Scatter Plot of CHSH Quantities')
+
+
+# Create the histogram for the CHSH quantities
+plt.figure(figsize=(10, 6))
+plt.bar(chsh_values.keys(), chsh_values.values(), color=['blue', 'aqua', 'green', 'red'])
+plt.xlabel('Bases')
+plt.ylabel('CHSH Quantity')
+plt.title('CHSH Quantities for Each Basis')
+plt.show()
