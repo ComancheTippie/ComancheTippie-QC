@@ -1,0 +1,48 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from qiskit import QuantumCircuit
+
+# Load the original color image
+image_path = "C:\\Users\\steve\\OneDrive\\Pictures\\Blue mfer.jpg"
+original_image = cv2.imread(image_path)
+original_image_rgb = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
+
+# Resize to 32x32 pixels
+resized_image = cv2.resize(original_image, (32, 32), interpolation=cv2.INTER_AREA)
+
+# Split into Red, Green, and Blue channels
+r_channel, g_channel, b_channel = cv2.split(resized_image)
+
+# Function to perform binary quantization and create quantum circuit
+def process_channel(channel):
+    quantized_channel = (channel >= 128).astype(int)
+    encoding_circuit = QuantumCircuit(1024)
+    for i, pixel_value in enumerate(quantized_channel.flatten()):
+        if pixel_value > 0:
+            encoding_circuit.x(i)
+    encoding_circuit.h(range(1024))
+    return quantized_channel, encoding_circuit
+
+# Process each color channel
+r_quantized, r_circuit = process_channel(r_channel)
+g_quantized, g_circuit = process_channel(g_channel)
+b_quantized, b_circuit = process_channel(b_channel)
+
+# Combine quantized channels into a color image (Note the order of channels)
+quantized_image = cv2.merge((b_quantized, g_quantized, r_quantized))
+
+# Draw the original, resized, and quantized images
+plt.subplot(1, 3, 1)
+plt.imshow(original_image_rgb)
+plt.title('Original Image')
+
+plt.subplot(1, 3, 2)
+plt.imshow(cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB))
+plt.title('Resized Image')
+
+plt.subplot(1, 3, 3)
+plt.imshow(quantized_image * 255) # Note: Now in RGB space
+plt.title('Quantized Image')
+
+plt.show()
