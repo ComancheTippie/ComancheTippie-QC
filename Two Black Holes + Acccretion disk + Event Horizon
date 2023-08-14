@@ -1,0 +1,75 @@
+from qiskit import QuantumCircuit, Aer, transpile
+from qiskit.visualization import plot_bloch_multivector, plot_histogram
+import numpy as np
+import matplotlib.pyplot as plt
+
+def black_hole_interaction(circuit, qubits):
+    circuit.cx(qubits[0], qubits[1])
+    circuit.h(qubits[1])
+    return circuit
+
+def accretion_disk_interaction(circuit, black_hole_qubit, accretion_qubits):
+    for qubit in accretion_qubits:
+        theta = np.random.uniform(0, 2*np.pi)
+        circuit.crx(theta, black_hole_qubit, qubit)
+    return circuit
+
+def event_horizon_simulation(circuit, black_hole_qubit):
+    circuit.z(black_hole_qubit)
+    return circuit
+
+def hawking_radiation(circuit, qubit):
+    theta = np.random.uniform(0, 2*np.pi)
+    circuit.rx(theta, qubit)
+    return circuit
+
+def two_black_holes_circuit():
+    circuit = QuantumCircuit(8, 2)
+    circuit.h(0)
+
+    # First black hole interaction
+    circuit = black_hole_interaction(circuit, [0, 1])
+    circuit = accretion_disk_interaction(circuit, 1, [3, 4])
+    circuit = event_horizon_simulation(circuit, 1)
+    circuit = hawking_radiation(circuit, 1)
+
+    # Second black hole interaction
+    circuit = black_hole_interaction(circuit, [1, 2])
+    circuit = accretion_disk_interaction(circuit, 2, [5, 6])
+    circuit = event_horizon_simulation(circuit, 2)
+    circuit = hawking_radiation(circuit, 2)
+
+    # Information retrieval (simplified)
+    circuit.cx(1, 2)
+    circuit.h(1)
+    circuit.cx(0, 1)
+    circuit.h(0)
+
+    circuit.measure([0, 1], [0, 1])
+    return circuit
+
+# Construct and run the circuit
+circuit = two_black_holes_circuit()
+simulator = Aer.get_backend('aer_simulator')
+compiled_circuit = transpile(circuit, simulator)
+result = simulator.run(compiled_circuit).result()
+
+# Print the measurement outcomes
+counts = result.get_counts()
+print(counts)
+
+
+# Plot the histogram
+plot = plot_histogram(counts)
+plt.show(block=False)  # Non-blocking display of the plot
+
+# Plot the Bloch sphere for the first qubit (qubit 0)
+statevector_simulator = Aer.get_backend('statevector_simulator')
+compiled_statevector_circuit = transpile(circuit, statevector_simulator)
+statevector_result = statevector_simulator.run(compiled_statevector_circuit).result()
+statevector = statevector_result.get_statevector()
+plot_bloch_multivector(statevector)
+plt.show()  # Blocking display of the plot
+
+input("Press Enter to close the plots...")  # Wait for user input
+plt.close('all')  # Close all open plots
