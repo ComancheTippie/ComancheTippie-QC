@@ -1,0 +1,42 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from qiskit import QuantumCircuit
+
+# Load the original image and resize to 25x25 pixels
+image_path = "C:\\Users\\steve\\OneDrive\\Pictures\\Blue mfer.jpg"
+image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+resized_image = cv2.resize(image, (25, 25), interpolation=cv2.INTER_AREA)
+
+# Binary quantization (0 or 1)
+quantized_image = (resized_image >= 128).astype(int)
+
+# Initialize quantum circuit with 625 qubits (25x25 pixels)
+encoding_circuit = QuantumCircuit(625)
+
+# Encode the quantized values into qubits
+for i, pixel_value in enumerate(quantized_image.flatten()):
+    if pixel_value > 0:
+        encoding_circuit.x(i)
+
+# Apply Hadamard gates to create superpositions
+encoding_circuit.h(range(625))
+
+# Draw the original, resized, and quantized images
+plt.subplot(1, 3, 1)
+plt.imshow(image, cmap='gray')
+plt.title('Original Image')
+
+plt.subplot(1, 3, 2)
+plt.imshow(resized_image, cmap='gray')
+plt.title('Resized Image')
+
+plt.subplot(1, 3, 3)
+plt.imshow(quantized_image, cmap='gray')
+plt.title('Quantized Image')
+
+plt.show()
+
+# Draw the quantum encoding circuit separately
+encoding_circuit.draw('mpl')
+plt.show()
