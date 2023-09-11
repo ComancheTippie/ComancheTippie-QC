@@ -1,0 +1,72 @@
+# Import Libraries
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.algorithms.optimizers import COBYLA
+from qiskit.circuit import Parameter
+from qiskit.quantum_info import Pauli
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.linalg import eigh
+
+# Define the Hamiltonian
+def construct_hamiltonian(m, J, N):
+    hamiltonian_matrix = np.zeros((2**N, 2**N), dtype=complex)
+    for i in range(N):
+        X_term = np.eye(1)
+        Z_term = np.eye(1)
+        for j in range(N):
+            X_term = np.kron(X_term, Pauli('X').to_matrix() if j == i else Pauli('I').to_matrix())
+            Z_term = np.kron(Z_term, Pauli('Z').to_matrix() if j == i else Pauli('I').to_matrix())
+        hamiltonian_matrix += 0.5 * X_term + m**2 * Z_term
+    for i in range(N-1):
+        ZZ_term = np.eye(1)
+        for j in range(N):
+            ZZ_term = np.kron(ZZ_term, Pauli('Z').to_matrix() if j == i or j == i+1 else Pauli('I').to_matrix())
+        hamiltonian_matrix += -J * ZZ_term
+    return hamiltonian_matrix
+
+# Number of qubits (lattice points)
+N = 2
+
+# Create an Ansatz
+theta = Parameter('θ')
+ansatz = QuantumCircuit(N)
+for i in range(N):
+    ansatz.ry(theta, i)
+ansatz.cx(0, 1)
+
+# Define evaluation function
+def evaluate_energy(params):
+    bound_ansatz = ansatz.bind_parameters({theta: params[0]})
+    result = execute(bound_ansatz, backend).result()
+    statevector = result.get_statevector()
+    return np.real(np.dot(statevector.conjugate(), np.dot(H_matrix, statevector)))
+
+# Optimizer and Backend
+optimizer = COBYLA(maxiter=500)
+backend = Aer.get_backend('statevector_simulator')
+
+# Parameter Sweep and Heatmap
+m_values = np.linspace(0.5, 1.5, 10)
+J_values = np.linspace(0.2, 0.8, 10)
+energies = np.zeros((len(m_values), len(J_values)))
+
+for i, m in enumerate(m_values):
+    for j, J in enumerate(J_values):
+        H_matrix = construct_hamiltonian(m, J, N)
+        result = optimizer.minimize(fun=evaluate_energy, x0=[0.0])
+        energies[i, j] = result.fun
+
+
+
+print(energies)
+
+
+# Heatmap Visualization
+sns.heatmap(energies, xticklabels=np.round(J_values, 2), yticklabels=np.round(m_values, 2), annot=True)
+plt.xlabel("J")
+plt.ylabel("m")
+plt.title("Ground State Energy for Varying m and J")
+plt.show()
+
+
