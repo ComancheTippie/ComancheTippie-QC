@@ -1,0 +1,36 @@
+from qiskit import QuantumCircuit, Aer, transpile
+from qiskit.providers.aer import AerSimulator
+from qiskit.visualization import plot_histogram
+from matplotlib import pyplot as plt
+
+# Initialize the quantum circuit
+n = 2  # Number of qubits
+qc = QuantumCircuit(n)
+
+# Ordinary spacetime region
+qc.h(0)  # Put the first qubit in a superposition
+
+# The Closed Timelike Curve (CTC)
+# Here, we model the CTC by using controlled operations between the qubits
+qc.cx(0, 1)  # Controlled-X operation, to induce entanglement as a simple model of the CTC influence
+
+# The Paradox
+# Introduce a NOT gate that, classically, would cause a paradox
+qc.x(0)
+
+# The CTC again, to close the loop
+qc.cx(0, 1)
+
+# Measurement
+qc.measure_all()
+
+# Simulation
+simulator = AerSimulator()
+compiled_circuit = transpile(qc, simulator)
+job = simulator.run(compiled_circuit)
+result = job.result()
+
+# Results
+counts = result.get_counts(qc)
+plot_histogram(counts)
+plt.show()
